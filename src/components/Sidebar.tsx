@@ -44,13 +44,15 @@ export const Sidebar: React.FC<SidebarProps> = ({ currentView, onViewChange }) =
       </nav>
 
       <div className="p-4 border-t border-slate-200">
-        <button 
-          onClick={() => onViewChange('create-invoice')}
-          className="w-full bg-primary text-slate-900 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 hover:opacity-90 transition-opacity"
-        >
-          <Plus className="w-4 h-4" />
-          <span>New Invoice</span>
-        </button>
+        {currentView !== 'accountant' && (
+          <button 
+            onClick={() => onViewChange('create-invoice')}
+            className="w-full bg-primary text-slate-900 font-bold py-2.5 rounded-lg flex items-center justify-center gap-2 btn-primary"
+          >
+            <Plus className="w-4 h-4" />
+            <span>New Invoice</span>
+          </button>
+        )}
       </div>
     </aside>
   );

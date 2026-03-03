@@ -12,6 +12,7 @@ import { CreateInvoiceView } from './components/CreateInvoiceView';
 import { ExpensesView } from './components/ExpensesView';
 import { ClientsView } from './components/ClientsView';
 import { VaultView } from './components/VaultView';
+import { AccountantView } from './components/AccountantView';
 import { View } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 
@@ -23,15 +24,17 @@ export default function App() {
       case 'dashboard':
         return <DashboardView />;
       case 'invoices':
-        return <InvoicesView />;
+        return <InvoicesView onCreateInvoice={() => setCurrentView('create-invoice')} />;
       case 'create-invoice':
-        return <CreateInvoiceView />;
+        return <CreateInvoiceView onDone={() => setCurrentView('invoices')} />;
       case 'expenses':
         return <ExpensesView />;
       case 'clients':
         return <ClientsView />;
       case 'vault':
         return <VaultView />;
+      case 'accountant':
+        return <AccountantView />;
       default:
         return <DashboardView />;
     }
@@ -45,6 +48,7 @@ export default function App() {
       case 'expenses': return 'Expenses';
       case 'clients': return 'Clients';
       case 'vault': return 'Tax Vault';
+      case 'accountant': return 'Accountant';
       default: return 'SFM Manager';
     }
   };

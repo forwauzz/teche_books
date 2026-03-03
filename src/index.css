@@ -20,3 +20,47 @@
 .dark .glass {
   @apply bg-slate-900/80 backdrop-blur-md border border-slate-800/50;
 }
+
+@layer components {
+  .btn-primary {
+    @apply transition-colors;
+  }
+  .btn-primary:hover {
+    filter: brightness(0.92);
+  }
+  .btn-secondary:hover {
+    @apply bg-slate-200;
+  }
+  .btn-outline:hover {
+    @apply bg-slate-100;
+  }
+  .btn-dark:hover {
+    @apply bg-slate-800;
+  }
+  .btn-danger:hover {
+    @apply bg-red-100;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .invoice-print-root,
+  .invoice-print-root * {
+    visibility: visible;
+  }
+  .invoice-print-root {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    padding: 0;
+    background: white;
+  }
+  .no-print,
+  .no-print * {
+    display: none !important;
+  }
+}
