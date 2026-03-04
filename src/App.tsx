@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { Header } from './components/Header';
 import { DashboardView } from './components/DashboardView';
@@ -13,11 +13,31 @@ import { ExpensesView } from './components/ExpensesView';
 import { ClientsView } from './components/ClientsView';
 import { VaultView } from './components/VaultView';
 import { AccountantView } from './components/AccountantView';
+import { LoginView } from './components/LoginView';
+import { SettingsView } from './components/SettingsView';
 import { View } from './types';
 import { motion, AnimatePresence } from 'motion/react';
 
 export default function App() {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
+
+  useEffect(() => {
+    if (sessionStorage.getItem('sfm-auth-logged-in') === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
+  if (!isAuthenticated) {
+    return (
+      <LoginView
+        onAuthenticated={() => {
+          sessionStorage.setItem('sfm-auth-logged-in', 'true');
+          setIsAuthenticated(true);
+        }}
+      />
+    );
+  }
 
   const renderView = () => {
     switch (currentView) {
@@ -35,6 +55,8 @@ export default function App() {
         return <VaultView />;
       case 'accountant':
         return <AccountantView />;
+      case 'settings':
+        return <SettingsView />;
       default:
         return <DashboardView />;
     }
@@ -49,6 +71,7 @@ export default function App() {
       case 'clients': return 'Clients';
       case 'vault': return 'Tax Vault';
       case 'accountant': return 'Accountant';
+      case 'settings': return 'Settings';
       default: return 'SFM Manager';
     }
   };
@@ -59,7 +82,15 @@ export default function App() {
       
       <main className="flex-1 flex flex-col overflow-hidden">
         {currentView !== 'vault' && currentView !== 'expenses' && currentView !== 'create-invoice' && (
-          <Header title={getTitle()} />
+          <Header
+            title={getTitle()}
+            onOpenSettings={() => setCurrentView('settings')}
+            onSignOut={() => {
+              sessionStorage.removeItem('sfm-auth-logged-in');
+              sessionStorage.removeItem('sfm-auth-email');
+              setIsAuthenticated(false);
+            }}
+          />
         )}
         
         <div className="flex-1 overflow-y-auto">

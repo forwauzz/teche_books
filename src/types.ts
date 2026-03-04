@@ -1,7 +1,7 @@
 import { Calculator, CreditCard, LayoutDashboard, Receipt, ShieldCheck, Users } from 'lucide-react';
 import type { ComponentType } from 'react';
 
-export type View = 'dashboard' | 'invoices' | 'create-invoice' | 'expenses' | 'clients' | 'vault' | 'accountant';
+export type View = 'dashboard' | 'invoices' | 'create-invoice' | 'expenses' | 'clients' | 'vault' | 'accountant' | 'settings';
 
 export interface NavItem {
   id: View;
