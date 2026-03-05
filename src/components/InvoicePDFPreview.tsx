@@ -1,11 +1,7 @@
 import React from 'react';
 import { formatCurrency } from '../lib/utils';
+import { formatCompanyAddress, useAppData } from '../context/AppDataContext';
 import type { InvoiceLineItem } from '../types';
-
-const COMPANY_NAME = 'Service Finance Manager Inc.';
-const COMPANY_ADDRESS = '123 Business Rd, Tech City, ON';
-const COMPANY_EMAIL = 'contact@sfm.com';
-const COMPANY_PHONE = '+1 234 567 890';
 
 export interface InvoicePreviewPayload {
   id: string;
@@ -26,18 +22,31 @@ function toDateLabel(iso: string) {
 }
 
 export const InvoicePDFPreview: React.FC<{ invoice: InvoicePreviewPayload }> = ({ invoice }) => {
+  const { state } = useAppData();
+  const company = state.company;
   const subtotal = invoice.lineItems.reduce((sum, item) => sum + item.qty * item.rate, 0);
   const taxAmount = subtotal * invoice.taxRate;
   const total = subtotal + taxAmount;
+
+  const companyName = company?.name?.trim() || 'Your company name';
+  const companyAddress = company ? formatCompanyAddress(company) : '';
+  const companyEmail = company?.email?.trim() || '';
+  const companyPhone = company?.phone?.trim() || '';
+  const companyWebsite = company?.website?.trim() || '';
+  const showCompanyHint = !company?.name?.trim();
 
   return (
     <div className="invoice-print-root bg-white text-slate-900 p-8 max-w-3xl mx-auto" id="invoice-pdf-content">
       <div className="flex justify-between items-start border-b border-slate-300 pb-6 mb-6">
         <div>
-          <h1 className="text-2xl font-black text-slate-900">{COMPANY_NAME}</h1>
-          <p className="text-sm text-slate-600 mt-1">{COMPANY_ADDRESS}</p>
-          <p className="text-sm text-slate-600">{COMPANY_EMAIL}</p>
-          <p className="text-sm text-slate-600">{COMPANY_PHONE}</p>
+          <h1 className="text-2xl font-black text-slate-900">{companyName}</h1>
+          {companyAddress && <p className="text-sm text-slate-600 mt-1 whitespace-pre-line">{companyAddress}</p>}
+          {companyEmail && <p className="text-sm text-slate-600">{companyEmail}</p>}
+          {companyPhone && <p className="text-sm text-slate-600">{companyPhone}</p>}
+          {companyWebsite && <p className="text-sm text-slate-600">{companyWebsite}</p>}
+          {showCompanyHint && (
+            <p className="text-xs text-slate-400 mt-2 no-print">Add your company in Settings → Company profile</p>
+          )}
         </div>
         <div className="text-right">
           <p className="text-xs font-bold uppercase text-slate-500 tracking-wider">Invoice</p>

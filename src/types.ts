@@ -28,6 +28,24 @@ export interface Projection {
   updatedAt: string;
 }
 
+/** Company/business profile (QuickBooks-style). Used as "from" on invoices and in reports. */
+export interface Company {
+  id: string;
+  name: string;
+  legalName?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  country?: string;
+  phone?: string;
+  email?: string;
+  website?: string;
+  taxId?: string;
+  updatedAt: string;
+}
+
 export type InvoiceStatus = 'Paid' | 'Overdue' | 'Sent' | 'Draft';
 
 export interface InvoiceLineItem {

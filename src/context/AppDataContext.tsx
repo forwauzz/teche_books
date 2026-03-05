@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useEffect, useMemo, useReducer } from 'react';
 import {
   Client,
+  Company,
   Expense,
   Invoice,
   InvoiceStatus,
@@ -12,6 +13,7 @@ import {
 const STORAGE_KEY = 'sfm-app-state-v2';
 
 export interface AppDataState {
+  company: Company | null;
   invoices: Invoice[];
   expenses: Expense[];
   clients: Client[];
@@ -40,9 +42,11 @@ type Action =
   | { type: 'UPDATE_VAULT_DOCUMENT'; payload: VaultDocument }
   | { type: 'DELETE_VAULT_DOCUMENT'; payload: string }
   | { type: 'UPSERT_PROJECTION'; payload: UpsertProjectionPayload }
-  | { type: 'DELETE_PROJECTION'; payload: string };
+  | { type: 'DELETE_PROJECTION'; payload: string }
+  | { type: 'SET_COMPANY'; payload: Company | null };
 
 const defaultState: AppDataState = {
+  company: null,
   invoices: [],
   expenses: [],
   clients: [],
@@ -119,6 +123,8 @@ function reducer(state: AppDataState, action: Action): AppDataState {
     }
     case 'DELETE_PROJECTION':
       return { ...state, projections: state.projections.filter((p) => p.id !== action.payload) };
+    case 'SET_COMPANY':
+      return { ...state, company: action.payload };
     default:
       return state;
   }
@@ -135,6 +141,7 @@ function loadInitialState(): AppDataState {
     return {
       ...defaultState,
       ...parsed,
+      company: parsed.company && typeof parsed.company === 'object' ? parsed.company : defaultState.company,
       vaultFolders: Array.isArray(parsed.vaultFolders) ? parsed.vaultFolders : defaultState.vaultFolders,
       vaultDocuments: Array.isArray(parsed.vaultDocuments) ? parsed.vaultDocuments : defaultState.vaultDocuments,
       projections: Array.isArray(parsed.projections) ? parsed.projections : defaultState.projections,
@@ -161,6 +168,7 @@ type AppDataContextValue = {
   deleteVaultDocument: (id: string) => void;
   upsertProjection: (projection: UpsertProjectionPayload) => void;
   deleteProjection: (id: string) => void;
+  setCompany: (company: Company | null) => void;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -190,6 +198,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       deleteVaultDocument: (id) => dispatch({ type: 'DELETE_VAULT_DOCUMENT', payload: id }),
       upsertProjection: (projection) => dispatch({ type: 'UPSERT_PROJECTION', payload: projection }),
       deleteProjection: (id) => dispatch({ type: 'DELETE_PROJECTION', payload: id }),
+      setCompany: (company) => dispatch({ type: 'SET_COMPANY', payload: company }),
     }),
     [state],
   );
@@ -214,5 +223,16 @@ export function toTitleDate(isoDate: string) {
   const date = new Date(isoDate);
   if (Number.isNaN(date.getTime())) return isoDate;
   return date.toLocaleDateString('en-CA', { month: 'short', day: '2-digit', year: 'numeric' });
+}
+
+export function formatCompanyAddress(company: Company): string {
+  const parts = [
+    company.addressLine1,
+    company.addressLine2,
+    [company.city, company.province].filter(Boolean).join(', '),
+    company.postalCode,
+    company.country,
+  ].filter(Boolean);
+  return parts.join('\n') || '';
 }
 
