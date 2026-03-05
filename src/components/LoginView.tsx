@@ -40,10 +40,11 @@ export const LoginView: React.FC<LoginViewProps> = ({ onAuthenticated }) => {
             <p className="text-xs text-slate-500">Secure access to your finance dashboard.</p>
           </div>
         </div>
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Email</label>
+            <label htmlFor="login-email" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Email</label>
             <input
+              id="login-email"
               type="email"
               autoComplete="email"
               value={email}
@@ -51,13 +52,16 @@ export const LoginView: React.FC<LoginViewProps> = ({ onAuthenticated }) => {
                 setEmail(event.target.value);
                 if (error) setError('');
               }}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               placeholder="you@example.com"
+              aria-invalid={!!error}
+              aria-describedby={error ? 'login-error' : undefined}
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Password</label>
+            <label htmlFor="login-password" className="text-xs font-semibold text-slate-600 uppercase tracking-wide">Password</label>
             <input
+              id="login-password"
               type="password"
               autoComplete="current-password"
               value={password}
@@ -65,14 +69,15 @@ export const LoginView: React.FC<LoginViewProps> = ({ onAuthenticated }) => {
                 setPassword(event.target.value);
                 if (error) setError('');
               }}
-              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
+              className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus-visible:ring-1 focus-visible:ring-primary"
               placeholder="••••••••"
+              aria-invalid={!!error}
             />
           </div>
-          {error && <p className="text-xs text-red-600">{error}</p>}
+          {error && <p id="login-error" className="text-xs text-red-600" role="alert">{error}</p>}
           <button
             type="submit"
-            className="w-full h-10 rounded-lg bg-primary text-slate-900 font-bold text-sm btn-primary"
+            className="w-full h-10 rounded-lg bg-primary text-slate-900 font-bold text-sm btn-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
           >
             Sign In
           </button>

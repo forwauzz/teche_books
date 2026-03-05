@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar, FileText, FileDown, PlusCircle, Save, Send, Trash2 } from 'lucide-react';
 import { formatCurrency } from '../lib/utils';
 import { makeId, useAppData } from '../context/AppDataContext';
@@ -8,9 +8,10 @@ import type { InvoicePreviewPayload } from './InvoicePDFPreview';
 
 interface CreateInvoiceViewProps {
   onDone: () => void;
+  onNavigateToClients?: () => void;
 }
 
-export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone }) => {
+export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, onNavigateToClients }) => {
   const { state, upsertInvoice } = useAppData();
   const [selectedClientEmail, setSelectedClientEmail] = useState(state.clients[0]?.email ?? '');
   const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
@@ -22,6 +23,14 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone }) 
   ]);
 
   const selectedClient = state.clients.find((client) => client.email === selectedClientEmail);
+
+  useEffect(() => {
+    if (state.clients.length > 0) {
+      const found = state.clients.some((c) => c.email === selectedClientEmail);
+      if (!found) setSelectedClientEmail(state.clients[0].email);
+    }
+  }, [state.clients]);
+
   const subtotal = useMemo(() => lineItems.reduce((sum, item) => sum + item.qty * item.rate, 0), [lineItems]);
   const taxAmount = subtotal * taxRate;
   const total = subtotal + taxAmount;
@@ -66,21 +75,54 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone }) 
     });
   };
 
+  const hasClients = state.clients.length > 0;
+
+  if (!hasClients) {
+    return (
+      <div className="flex flex-1 overflow-y-auto p-6 md:p-8">
+        <div className="max-w-md mx-auto flex flex-col items-center justify-center text-center space-y-4 py-12">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight">No clients yet</h1>
+          <p className="text-slate-500">Add at least one client before creating an invoice. You can manage clients from the Clients page.</p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {onNavigateToClients && (
+              <button
+                type="button"
+                onClick={onNavigateToClients}
+                className="px-6 py-2.5 rounded-lg bg-primary text-slate-900 font-bold text-sm btn-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                Go to Clients
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDone}
+              className="px-6 py-2.5 rounded-lg border border-slate-200 font-medium text-sm btn-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Back to Invoices
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-1 overflow-hidden">
-      <div className="flex-1 overflow-y-auto p-8">
-        <div className="max-w-4xl mx-auto space-y-8">
-          <div className="flex justify-between items-end border-b border-slate-200 pb-6">
+    <div className="flex flex-1 overflow-hidden flex-col lg:flex-row">
+      <div className="flex-1 overflow-y-auto p-4 sm:p-6 md:p-8">
+        <div className="max-w-4xl mx-auto space-y-6 md:space-y-8">
+          <div className="flex justify-between items-end border-b border-slate-200 pb-4 md:pb-6">
             <div className="space-y-1">
-              <h1 className="text-4xl font-black tracking-tight">Create New Invoice</h1>
-              <p className="text-slate-500">Build a real invoice and store it in your app data.</p>
+              <h1 className="text-2xl sm:text-3xl md:text-4xl font-black tracking-tight">Create New Invoice</h1>
+              <p className="text-slate-500 text-sm">Build a real invoice and store it in your app data.</p>
             </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 bg-white p-6 rounded-xl border border-slate-200">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 md:gap-8 bg-white p-4 md:p-6 rounded-xl border border-slate-200">
             <div className="space-y-2">
-              <p className="text-sm font-bold text-slate-700">Bill To</p>
+              <label htmlFor="create-invoice-client" className="text-sm font-bold text-slate-700">Bill To</label>
               <select
+                id="create-invoice-client"
+                aria-label="Select client to bill"
                 className="w-full rounded-lg border border-slate-200 bg-white text-sm py-3 px-4"
                 value={selectedClientEmail}
                 onChange={(event) => setSelectedClientEmail(event.target.value)}
@@ -94,10 +136,10 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone }) 
               <p className="text-xs text-slate-500">{selectedClient?.email ?? 'No client selected'}</p>
             </div>
             <div className="space-y-2">
-              <label className="text-sm font-bold text-slate-700">Due Date</label>
+              <label htmlFor="create-invoice-due" className="text-sm font-bold text-slate-700">Due Date</label>
               <div className="flex items-center gap-2 p-2.5 rounded-lg bg-slate-50 border border-slate-200">
                 <Calendar className="w-4 h-4 text-slate-400" />
-                <input className="flex-1 bg-transparent border-none text-sm p-0 focus:ring-0" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} />
+                <input id="create-invoice-due" className="flex-1 bg-transparent border-none text-sm p-0 focus:ring-0" type="date" value={dueDate} onChange={(event) => setDueDate(event.target.value)} aria-label="Due date" />
               </div>
             </div>
           </div>

@@ -13,6 +13,7 @@ import { ExpensesView } from './components/ExpensesView';
 import { ClientsView } from './components/ClientsView';
 import { VaultView } from './components/VaultView';
 import { AccountantView } from './components/AccountantView';
+import { ProjectionsView } from './components/ProjectionsView';
 import { LoginView } from './components/LoginView';
 import { SettingsView } from './components/SettingsView';
 import { View } from './types';
@@ -21,12 +22,18 @@ import { motion, AnimatePresence } from 'motion/react';
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
 
   useEffect(() => {
     if (sessionStorage.getItem('sfm-auth-logged-in') === 'true') {
       setIsAuthenticated(true);
     }
   }, []);
+
+  const handleViewChange = (view: View) => {
+    setCurrentView(view);
+    setSidebarOpen(false);
+  };
 
   if (!isAuthenticated) {
     return (
@@ -46,7 +53,12 @@ export default function App() {
       case 'invoices':
         return <InvoicesView onCreateInvoice={() => setCurrentView('create-invoice')} />;
       case 'create-invoice':
-        return <CreateInvoiceView onDone={() => setCurrentView('invoices')} />;
+        return (
+          <CreateInvoiceView
+            onDone={() => setCurrentView('invoices')}
+            onNavigateToClients={() => setCurrentView('clients')}
+          />
+        );
       case 'expenses':
         return <ExpensesView />;
       case 'clients':
@@ -55,6 +67,8 @@ export default function App() {
         return <VaultView />;
       case 'accountant':
         return <AccountantView />;
+      case 'projections':
+        return <ProjectionsView />;
       case 'settings':
         return <SettingsView />;
       default:
@@ -71,6 +85,7 @@ export default function App() {
       case 'clients': return 'Clients';
       case 'vault': return 'Tax Vault';
       case 'accountant': return 'Accountant';
+      case 'projections': return 'Projections';
       case 'settings': return 'Settings';
       default: return 'SFM Manager';
     }
@@ -78,9 +93,18 @@ export default function App() {
 
   return (
     <div className="flex h-screen overflow-hidden bg-background-light">
-      <Sidebar currentView={currentView} onViewChange={setCurrentView} />
+      <a href="#main-content" className="skip-link">
+        Skip to main content
+      </a>
+      <Sidebar
+        currentView={currentView}
+        onViewChange={handleViewChange}
+        isOpen={sidebarOpen}
+        onOpen={() => setSidebarOpen(true)}
+        onClose={() => setSidebarOpen(false)}
+      />
       
-      <main className="flex-1 flex flex-col overflow-hidden">
+      <main id="main-content" className="flex-1 flex flex-col overflow-hidden min-w-0" role="main">
         {currentView !== 'vault' && currentView !== 'expenses' && currentView !== 'create-invoice' && (
           <Header
             title={getTitle()}
@@ -90,6 +114,7 @@ export default function App() {
               sessionStorage.removeItem('sfm-auth-email');
               setIsAuthenticated(false);
             }}
+            onOpenMenu={() => setSidebarOpen(true)}
           />
         )}
         
@@ -108,7 +133,7 @@ export default function App() {
           </AnimatePresence>
         </div>
 
-        <footer className="border-t border-slate-200 bg-white py-4 px-10 text-center shrink-0">
+        <footer className="border-t border-slate-200 bg-white py-4 px-4 sm:px-10 text-center shrink-0" role="contentinfo">
           <p className="text-slate-500 text-xs">© 2024 Service Finance Manager (SFM). All rights reserved.</p>
         </footer>
       </main>

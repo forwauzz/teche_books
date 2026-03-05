@@ -4,16 +4,12 @@ import {
   Expense,
   Invoice,
   InvoiceStatus,
-  MOCK_CLIENTS,
-  MOCK_EXPENSES,
-  MOCK_INVOICES,
-  MOCK_VAULT_DOCUMENTS,
-  MOCK_VAULT_FOLDERS,
+  Projection,
   VaultDocument,
   VaultFolder,
 } from '../types';
 
-const STORAGE_KEY = 'sfm-app-state-v1';
+const STORAGE_KEY = 'sfm-app-state-v2';
 
 export interface AppDataState {
   invoices: Invoice[];
@@ -21,11 +17,13 @@ export interface AppDataState {
   clients: Client[];
   vaultFolders: VaultFolder[];
   vaultDocuments: VaultDocument[];
+  projections: Projection[];
 }
 
 type UpsertInvoicePayload = Omit<Invoice, 'updatedAt'> & { updatedAt?: string };
 type UpsertExpensePayload = Omit<Expense, 'updatedAt'> & { updatedAt?: string };
 type UpsertClientPayload = Omit<Client, 'updatedAt'> & { updatedAt?: string };
+type UpsertProjectionPayload = Omit<Projection, 'updatedAt'> & { updatedAt?: string };
 
 type Action =
   | { type: 'UPSERT_INVOICE'; payload: UpsertInvoicePayload }
@@ -40,14 +38,17 @@ type Action =
   | { type: 'DELETE_VAULT_FOLDER'; payload: string }
   | { type: 'ADD_VAULT_DOCUMENT'; payload: VaultDocument }
   | { type: 'UPDATE_VAULT_DOCUMENT'; payload: VaultDocument }
-  | { type: 'DELETE_VAULT_DOCUMENT'; payload: string };
+  | { type: 'DELETE_VAULT_DOCUMENT'; payload: string }
+  | { type: 'UPSERT_PROJECTION'; payload: UpsertProjectionPayload }
+  | { type: 'DELETE_PROJECTION'; payload: string };
 
 const defaultState: AppDataState = {
-  invoices: MOCK_INVOICES,
-  expenses: MOCK_EXPENSES,
-  clients: MOCK_CLIENTS,
-  vaultFolders: MOCK_VAULT_FOLDERS,
-  vaultDocuments: MOCK_VAULT_DOCUMENTS,
+  invoices: [],
+  expenses: [],
+  clients: [],
+  vaultFolders: [],
+  vaultDocuments: [],
+  projections: [],
 };
 
 function withTimestamp<T extends { updatedAt?: string }>(item: T): T & { updatedAt: string } {
@@ -112,6 +113,12 @@ function reducer(state: AppDataState, action: Action): AppDataState {
       return { ...state, vaultDocuments: upsertById(state.vaultDocuments, action.payload) };
     case 'DELETE_VAULT_DOCUMENT':
       return { ...state, vaultDocuments: state.vaultDocuments.filter((doc) => doc.id !== action.payload) };
+    case 'UPSERT_PROJECTION': {
+      const projection = withTimestamp(action.payload);
+      return { ...state, projections: upsertById(state.projections, projection) };
+    }
+    case 'DELETE_PROJECTION':
+      return { ...state, projections: state.projections.filter((p) => p.id !== action.payload) };
     default:
       return state;
   }
@@ -130,6 +137,7 @@ function loadInitialState(): AppDataState {
       ...parsed,
       vaultFolders: Array.isArray(parsed.vaultFolders) ? parsed.vaultFolders : defaultState.vaultFolders,
       vaultDocuments: Array.isArray(parsed.vaultDocuments) ? parsed.vaultDocuments : defaultState.vaultDocuments,
+      projections: Array.isArray(parsed.projections) ? parsed.projections : defaultState.projections,
     };
   } catch {
     return defaultState;
@@ -151,6 +159,8 @@ type AppDataContextValue = {
   addVaultDocument: (document: VaultDocument) => void;
   updateVaultDocument: (document: VaultDocument) => void;
   deleteVaultDocument: (id: string) => void;
+  upsertProjection: (projection: UpsertProjectionPayload) => void;
+  deleteProjection: (id: string) => void;
 };
 
 const AppDataContext = createContext<AppDataContextValue | null>(null);
@@ -178,6 +188,8 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addVaultDocument: (document) => dispatch({ type: 'ADD_VAULT_DOCUMENT', payload: document }),
       updateVaultDocument: (document) => dispatch({ type: 'UPDATE_VAULT_DOCUMENT', payload: document }),
       deleteVaultDocument: (id) => dispatch({ type: 'DELETE_VAULT_DOCUMENT', payload: id }),
+      upsertProjection: (projection) => dispatch({ type: 'UPSERT_PROJECTION', payload: projection }),
+      deleteProjection: (id) => dispatch({ type: 'DELETE_PROJECTION', payload: id }),
     }),
     [state],
   );

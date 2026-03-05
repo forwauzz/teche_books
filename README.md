@@ -4,7 +4,7 @@
 
 # Service Finance Manager (SFM)
 
-SFM is a React + Vite dashboard for managing service-business finances: invoices, expenses, clients, tax vault, and an accountant-only view. Data is stored locally in the browser (localStorage) and all amounts are shown in CAD.
+SFM is a React + Vite dashboard for managing service-business finances: invoices, expenses, clients, projections, tax vault, and an accountant-only view. Data is stored locally in the browser (localStorage) and all amounts are shown in CAD. The app is mobile-responsive and built with accessibility in mind (keyboard navigation, skip link, ARIA).
 
 ## Run Locally
 
@@ -25,6 +25,7 @@ SFM is a React + Vite dashboard for managing service-business finances: invoices
   - **Preview as PDF** from the invoice list or while drafting, using the browser’s “Print → Save as PDF”.
 - **Expenses**: Track expenses with categories, statuses (Pending / Verified / Flagged), and notes.
 - **Clients**: Manage clients and see total billed per client based on linked invoices.
+- **Projections**: Plan revenue and expenses by month; compare projected vs actual with a table and chart.
 - **Tax Vault**:
   - Create/remove folders (e.g. tax years).
   - Add/edit/delete document metadata and linked transactions.
@@ -34,5 +35,5 @@ SFM is a React + Vite dashboard for managing service-business finances: invoices
 
 ## Data & Persistence
 
-- All operational data (invoices, expenses, clients, vault folders/docs) is stored in **browser localStorage** under a versioned key.
-- Clearing browser storage will reset the app back to its seeded demo data.
+- All operational data (invoices, expenses, clients, projections, vault folders/docs) is stored in **browser localStorage** under a versioned key.
+- The app starts with no data; everything you see is data you enter. Clearing browser storage will reset the app to an empty state.

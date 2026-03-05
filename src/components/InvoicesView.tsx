@@ -167,9 +167,14 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ onCreateInvoice }) =
       </div>
 
       {editingInvoice && (
-        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-xl p-6 space-y-4">
-            <h3 className="text-xl font-bold">Edit Invoice</h3>
+        <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50" role="presentation">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="edit-invoice-title"
+            className="bg-white rounded-xl border border-slate-200 shadow-xl w-full max-w-xl p-6 space-y-4"
+          >
+            <h3 id="edit-invoice-title" className="text-xl font-bold">Edit Invoice</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input className="border border-slate-200 rounded-lg px-3 py-2 text-sm" value={editingInvoice.clientName} onChange={(event) => setEditingInvoice({ ...editingInvoice, clientName: event.target.value })} placeholder="Client name" />
               <input className="border border-slate-200 rounded-lg px-3 py-2 text-sm" value={editingInvoice.clientEmail} onChange={(event) => setEditingInvoice({ ...editingInvoice, clientEmail: event.target.value })} placeholder="Client email" />

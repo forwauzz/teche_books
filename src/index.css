@@ -13,6 +13,28 @@
   }
 }
 
+.skip-link {
+  @apply sr-only;
+}
+.skip-link:focus,
+.skip-link:focus-visible {
+  position: fixed !important;
+  top: 1rem;
+  left: 1rem;
+  width: auto !important;
+  height: auto !important;
+  padding: 0.5rem 1rem;
+  margin: 0 !important;
+  overflow: visible !important;
+  clip: auto !important;
+  white-space: normal !important;
+  z-index: 50;
+  background: var(--color-primary);
+  color: #0f172a;
+  font-weight: 700;
+  border-radius: 0.5rem;
+}
+
 .glass {
   @apply bg-white/80 backdrop-blur-md border border-white/20;
 }
@@ -22,6 +44,9 @@
 }
 
 @layer components {
+  .focus-ring {
+    @apply focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2;
+  }
   .btn-primary {
     @apply transition-colors;
   }
