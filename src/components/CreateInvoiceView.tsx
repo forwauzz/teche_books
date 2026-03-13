@@ -9,11 +9,12 @@ import type { InvoicePreviewPayload } from './InvoicePDFPreview';
 interface CreateInvoiceViewProps {
   onDone: () => void;
   onNavigateToClients?: () => void;
+  onNavigateToSettings?: () => void;
 }
 
-export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, onNavigateToClients }) => {
-  const { state, upsertInvoice } = useAppData();
-  const [selectedClientEmail, setSelectedClientEmail] = useState(state.clients[0]?.email ?? '');
+export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, onNavigateToClients, onNavigateToSettings }) => {
+  const { state, scopedClients, scopedInvoices, activeCompanyId, upsertInvoice } = useAppData();
+  const [selectedClientEmail, setSelectedClientEmail] = useState(scopedClients[0]?.email ?? '');
   const [dueDate, setDueDate] = useState(new Date().toISOString().slice(0, 10));
   const [taxRate, setTaxRate] = useState(0.1);
   const [notes, setNotes] = useState('');
@@ -22,14 +23,14 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, on
     { id: makeId('line'), service: 'Service Item', description: 'Description', qty: 1, rate: 0 },
   ]);
 
-  const selectedClient = state.clients.find((client) => client.email === selectedClientEmail);
+  const selectedClient = scopedClients.find((client) => client.email === selectedClientEmail);
 
   useEffect(() => {
-    if (state.clients.length > 0) {
-      const found = state.clients.some((c) => c.email === selectedClientEmail);
-      if (!found) setSelectedClientEmail(state.clients[0].email);
+    if (scopedClients.length > 0) {
+      const found = scopedClients.some((c) => c.email === selectedClientEmail);
+      if (!found) setSelectedClientEmail(scopedClients[0].email);
     }
-  }, [state.clients]);
+  }, [scopedClients, selectedClientEmail]);
 
   const subtotal = useMemo(() => lineItems.reduce((sum, item) => sum + item.qty * item.rate, 0), [lineItems]);
   const taxAmount = subtotal * taxRate;
@@ -41,7 +42,7 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, on
 
   const createInvoice = (status: 'Draft' | 'Sent') => {
     if (!selectedClient) return;
-    const nextNumber = state.invoices.length + 1;
+    const nextNumber = scopedInvoices.length + 1;
     const id = `#INV-${new Date().getFullYear()}-${String(nextNumber).padStart(3, '0')}`;
     upsertInvoice({
       id,
@@ -60,7 +61,7 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, on
 
   const openPdfPreview = () => {
     if (!selectedClient) return;
-    const nextNumber = state.invoices.length + 1;
+    const nextNumber = scopedInvoices.length + 1;
     const id = `#INV-${new Date().getFullYear()}-${String(nextNumber).padStart(3, '0')}`;
     setPdfPreview({
       id,
@@ -75,7 +76,36 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, on
     });
   };
 
-  const hasClients = state.clients.length > 0;
+  const hasClients = scopedClients.length > 0;
+
+  if (!activeCompanyId) {
+    return (
+      <div className="flex flex-1 overflow-y-auto p-6 md:p-8">
+        <div className="max-w-md mx-auto flex flex-col items-center justify-center text-center space-y-4 py-12">
+          <h1 className="text-2xl md:text-3xl font-black tracking-tight">Select or create a company first</h1>
+          <p className="text-slate-500">Choose an active company in the sidebar or create one in Settings before creating invoices.</p>
+          <div className="flex flex-wrap gap-3 justify-center">
+            {onNavigateToSettings && (
+              <button
+                type="button"
+                onClick={onNavigateToSettings}
+                className="px-6 py-2.5 rounded-lg bg-primary text-slate-900 font-bold text-sm btn-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+              >
+                Go to Settings
+              </button>
+            )}
+            <button
+              type="button"
+              onClick={onDone}
+              className="px-6 py-2.5 rounded-lg border border-slate-200 font-medium text-sm btn-outline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:ring-offset-2"
+            >
+              Back to Invoices
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   if (!hasClients) {
     return (
@@ -127,7 +157,7 @@ export const CreateInvoiceView: React.FC<CreateInvoiceViewProps> = ({ onDone, on
                 value={selectedClientEmail}
                 onChange={(event) => setSelectedClientEmail(event.target.value)}
               >
-                {state.clients.map((client) => (
+                {scopedClients.map((client) => (
                   <option key={client.id} value={client.email}>
                     {client.name} - {client.contact}
                   </option>

@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { LogOut, Search, Bell, Settings } from 'lucide-react';
 import { AUTH_EMAIL_KEY } from './LoginView';
+import { useAppData } from '../context/AppDataContext';
 
 interface HeaderProps {
   title: string;
@@ -13,6 +14,8 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenSettings, onSignOut
   const [menuOpen, setMenuOpen] = useState(false);
   const [userEmail, setUserEmail] = useState('');
   const menuRef = useRef<HTMLDivElement>(null);
+  const { state } = useAppData();
+  const companyName = state.company?.name?.trim() || '';
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -50,7 +53,14 @@ export const Header: React.FC<HeaderProps> = ({ title, onOpenSettings, onSignOut
             </svg>
           </button>
         )}
-        <h2 className="text-lg sm:text-xl font-bold truncate">{title}</h2>
+        <div className="flex items-center gap-2 min-w-0">
+          <h2 className="text-lg sm:text-xl font-bold truncate">{title}</h2>
+          {companyName && title.startsWith('Dashboard') && (
+            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full bg-slate-100 text-xs font-medium text-slate-700 max-w-[180px] truncate">
+              {companyName}
+            </span>
+          )}
+        </div>
         <div className="relative w-32 sm:w-48 md:w-64 hidden sm:block">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4 pointer-events-none" aria-hidden />
           <input

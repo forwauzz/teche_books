@@ -13,7 +13,7 @@ interface InvoicesViewProps {
 const statuses: (InvoiceStatus | 'All')[] = ['All', 'Paid', 'Overdue', 'Sent', 'Draft'];
 
 export const InvoicesView: React.FC<InvoicesViewProps> = ({ onCreateInvoice }) => {
-  const { state, deleteInvoice, setInvoiceStatus, upsertInvoice } = useAppData();
+  const { scopedInvoices, activeCompanyId, deleteInvoice, setInvoiceStatus, upsertInvoice } = useAppData();
   const [statusFilter, setStatusFilter] = useState<(typeof statuses)[number]>('All');
   const [query, setQuery] = useState('');
   const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
@@ -21,7 +21,7 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ onCreateInvoice }) =
 
   const filtered = useMemo(
     () =>
-      state.invoices.filter((invoice) => {
+      scopedInvoices.filter((invoice) => {
         const byStatus = statusFilter === 'All' ? true : invoice.status === statusFilter;
         const q = query.toLowerCase();
         const byQuery =
@@ -31,16 +31,16 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ onCreateInvoice }) =
           invoice.clientEmail.toLowerCase().includes(q);
         return byStatus && byQuery;
       }),
-    [query, state.invoices, statusFilter],
+    [query, scopedInvoices, statusFilter],
   );
 
   const stats = useMemo(() => {
-    const outstanding = state.invoices.filter((invoice) => invoice.status !== 'Paid').reduce((sum, invoice) => sum + invoice.amount, 0);
-    const paid = state.invoices.filter((invoice) => invoice.status === 'Paid').reduce((sum, invoice) => sum + invoice.amount, 0);
-    const overdue = state.invoices.filter((invoice) => invoice.status === 'Overdue').reduce((sum, invoice) => sum + invoice.amount, 0);
-    const drafts = state.invoices.filter((invoice) => invoice.status === 'Draft').reduce((sum, invoice) => sum + invoice.amount, 0);
+    const outstanding = scopedInvoices.filter((invoice) => invoice.status !== 'Paid').reduce((sum, invoice) => sum + invoice.amount, 0);
+    const paid = scopedInvoices.filter((invoice) => invoice.status === 'Paid').reduce((sum, invoice) => sum + invoice.amount, 0);
+    const overdue = scopedInvoices.filter((invoice) => invoice.status === 'Overdue').reduce((sum, invoice) => sum + invoice.amount, 0);
+    const drafts = scopedInvoices.filter((invoice) => invoice.status === 'Draft').reduce((sum, invoice) => sum + invoice.amount, 0);
     return { outstanding, paid, overdue, drafts };
-  }, [state.invoices]);
+  }, [scopedInvoices]);
 
   const startEdit = (invoice: Invoice) => setEditingInvoice(invoice);
   const saveEdit = () => {
@@ -56,17 +56,22 @@ export const InvoicesView: React.FC<InvoicesViewProps> = ({ onCreateInvoice }) =
           <h1 className="text-slate-900 text-3xl font-black leading-tight tracking-tight">Invoice Management</h1>
           <p className="text-slate-500 text-base font-normal">Track, edit, and manage invoice lifecycle.</p>
         </div>
-        <button onClick={onCreateInvoice} className="flex items-center gap-2 h-11 px-6 bg-primary text-slate-900 rounded-lg font-bold text-sm btn-primary">
+        <button
+          onClick={onCreateInvoice}
+          disabled={!activeCompanyId}
+          title={!activeCompanyId ? 'Select or create a company first' : undefined}
+          className="flex items-center gap-2 h-11 px-6 bg-primary text-slate-900 rounded-lg font-bold text-sm btn-primary disabled:opacity-50 disabled:pointer-events-none"
+        >
           <Plus className="w-5 h-5" />
           <span>Create New Invoice</span>
         </button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <StatCard label="Total Outstanding" value={formatCurrency(stats.outstanding)} trend={`${state.invoices.filter((i) => i.status !== 'Paid').length} unpaid`} icon={<Clock className="w-5 h-5" />} />
-        <StatCard label="Paid Total" value={formatCurrency(stats.paid)} trend={`${state.invoices.filter((i) => i.status === 'Paid').length} paid`} icon={<CheckCircle2 className="w-5 h-5" />} />
-        <StatCard label="Overdue" value={formatCurrency(stats.overdue)} trend={`${state.invoices.filter((i) => i.status === 'Overdue').length} overdue`} icon={<Clock className="w-5 h-5" />} />
-        <StatCard label="Drafts" value={formatCurrency(stats.drafts)} trend={`${state.invoices.filter((i) => i.status === 'Draft').length} drafts`} icon={<FileEdit className="w-5 h-5" />} />
+        <StatCard label="Total Outstanding" value={formatCurrency(stats.outstanding)} trend={`${scopedInvoices.filter((i) => i.status !== 'Paid').length} unpaid`} icon={<Clock className="w-5 h-5" />} />
+        <StatCard label="Paid Total" value={formatCurrency(stats.paid)} trend={`${scopedInvoices.filter((i) => i.status === 'Paid').length} paid`} icon={<CheckCircle2 className="w-5 h-5" />} />
+        <StatCard label="Overdue" value={formatCurrency(stats.overdue)} trend={`${scopedInvoices.filter((i) => i.status === 'Overdue').length} overdue`} icon={<Clock className="w-5 h-5" />} />
+        <StatCard label="Drafts" value={formatCurrency(stats.drafts)} trend={`${scopedInvoices.filter((i) => i.status === 'Draft').length} drafts`} icon={<FileEdit className="w-5 h-5" />} />
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">

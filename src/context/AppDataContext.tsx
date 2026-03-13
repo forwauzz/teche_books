@@ -13,7 +13,10 @@ import {
 const STORAGE_KEY = 'sfm-app-state-v2';
 
 export interface AppDataState {
+  /** Currently active company in the UI */
   company: Company | null;
+  /** All companies saved on this device (simulates a Companies table) */
+  companies: Company[];
   invoices: Invoice[];
   expenses: Expense[];
   clients: Client[];
@@ -47,6 +50,7 @@ type Action =
 
 const defaultState: AppDataState = {
   company: null,
+  companies: [],
   invoices: [],
   expenses: [],
   clients: [],
@@ -68,7 +72,10 @@ function upsertById<T extends { id: string }>(list: T[], item: T): T[] {
 function reducer(state: AppDataState, action: Action): AppDataState {
   switch (action.type) {
     case 'UPSERT_INVOICE': {
-      const invoice = withTimestamp(action.payload);
+      const invoice = withTimestamp({
+        ...action.payload,
+        companyId: action.payload.companyId ?? state.company?.id,
+      });
       return { ...state, invoices: upsertById(state.invoices, invoice) };
     }
     case 'DELETE_INVOICE':
@@ -83,7 +90,10 @@ function reducer(state: AppDataState, action: Action): AppDataState {
         ),
       };
     case 'UPSERT_EXPENSE': {
-      const expense = withTimestamp(action.payload);
+      const expense = withTimestamp({
+        ...action.payload,
+        companyId: action.payload.companyId ?? state.company?.id,
+      });
       return { ...state, expenses: upsertById(state.expenses, expense) };
     }
     case 'DELETE_EXPENSE':
@@ -98,7 +108,10 @@ function reducer(state: AppDataState, action: Action): AppDataState {
         ),
       };
     case 'UPSERT_CLIENT': {
-      const client = withTimestamp(action.payload);
+      const client = withTimestamp({
+        ...action.payload,
+        companyId: action.payload.companyId ?? state.company?.id,
+      });
       return { ...state, clients: upsertById(state.clients, client) };
     }
     case 'DELETE_CLIENT':
@@ -118,13 +131,38 @@ function reducer(state: AppDataState, action: Action): AppDataState {
     case 'DELETE_VAULT_DOCUMENT':
       return { ...state, vaultDocuments: state.vaultDocuments.filter((doc) => doc.id !== action.payload) };
     case 'UPSERT_PROJECTION': {
-      const projection = withTimestamp(action.payload);
+      const projection = withTimestamp({
+        ...action.payload,
+        companyId: action.payload.companyId ?? state.company?.id,
+      });
       return { ...state, projections: upsertById(state.projections, projection) };
     }
     case 'DELETE_PROJECTION':
       return { ...state, projections: state.projections.filter((p) => p.id !== action.payload) };
     case 'SET_COMPANY':
-      return { ...state, company: action.payload };
+      if (!action.payload) {
+        return { ...state, company: null };
+      }
+      // Merge/update into companies list and set as active, assigning id and createdAt if needed
+      {
+        const now = new Date().toISOString();
+        const incoming = action.payload;
+        const existing = incoming.id ? state.companies.find((c) => c.id === incoming.id) : undefined;
+        const id = incoming.id || makeId('company');
+        const createdAt = existing?.createdAt || incoming.createdAt || now;
+        const company: Company = {
+          ...existing,
+          ...incoming,
+          id,
+          createdAt,
+          updatedAt: now,
+        };
+        return {
+          ...state,
+          company,
+          companies: upsertById(state.companies, company),
+        };
+      }
     default:
       return state;
   }
@@ -138,10 +176,17 @@ function loadInitialState(): AppDataState {
     if (!parsed || !Array.isArray(parsed.invoices) || !Array.isArray(parsed.expenses) || !Array.isArray(parsed.clients)) {
       return defaultState;
     }
+    const parsedCompany = parsed.company && typeof parsed.company === 'object' ? parsed.company : null;
+    const parsedCompanies = Array.isArray((parsed as any).companies)
+      ? (parsed as any).companies as Company[]
+      : parsedCompany
+        ? [parsedCompany]
+        : [];
     return {
       ...defaultState,
       ...parsed,
-      company: parsed.company && typeof parsed.company === 'object' ? parsed.company : defaultState.company,
+      company: parsedCompany ?? parsedCompanies[0] ?? null,
+      companies: parsedCompanies,
       vaultFolders: Array.isArray(parsed.vaultFolders) ? parsed.vaultFolders : defaultState.vaultFolders,
       vaultDocuments: Array.isArray(parsed.vaultDocuments) ? parsed.vaultDocuments : defaultState.vaultDocuments,
       projections: Array.isArray(parsed.projections) ? parsed.projections : defaultState.projections,
@@ -151,8 +196,23 @@ function loadInitialState(): AppDataState {
   }
 }
 
+function filterByCompanyId<T extends { companyId?: string }>(list: T[], companyId: string | null): T[] {
+  if (!companyId) return [];
+  return list.filter((item) => item.companyId === companyId);
+}
+
 type AppDataContextValue = {
   state: AppDataState;
+  /** Active company id; null when no company selected. Use for scoped data and validation. */
+  activeCompanyId: string | null;
+  /** Invoices for the active company only. Empty when no company selected. */
+  scopedInvoices: Invoice[];
+  /** Expenses for the active company only. Empty when no company selected. */
+  scopedExpenses: Expense[];
+  /** Clients for the active company only. Empty when no company selected. */
+  scopedClients: Client[];
+  /** Projections for the active company only. Empty when no company selected. */
+  scopedProjections: Projection[];
   upsertInvoice: (invoice: UpsertInvoicePayload) => void;
   deleteInvoice: (id: string) => void;
   setInvoiceStatus: (id: string, status: InvoiceStatus) => void;
@@ -180,9 +240,20 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
     localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }, [state]);
 
+  const activeCompanyId = state.company?.id ?? null;
+  const scopedInvoices = useMemo(() => filterByCompanyId(state.invoices, activeCompanyId), [state.invoices, activeCompanyId]);
+  const scopedExpenses = useMemo(() => filterByCompanyId(state.expenses, activeCompanyId), [state.expenses, activeCompanyId]);
+  const scopedClients = useMemo(() => filterByCompanyId(state.clients, activeCompanyId), [state.clients, activeCompanyId]);
+  const scopedProjections = useMemo(() => filterByCompanyId(state.projections, activeCompanyId), [state.projections, activeCompanyId]);
+
   const value = useMemo<AppDataContextValue>(
     () => ({
       state,
+      activeCompanyId,
+      scopedInvoices,
+      scopedExpenses,
+      scopedClients,
+      scopedProjections,
       upsertInvoice: (invoice) => dispatch({ type: 'UPSERT_INVOICE', payload: invoice }),
       deleteInvoice: (id) => dispatch({ type: 'DELETE_INVOICE', payload: id }),
       setInvoiceStatus: (id, status) => dispatch({ type: 'SET_INVOICE_STATUS', payload: { id, status } }),
@@ -200,7 +271,7 @@ export const AppDataProvider: React.FC<{ children: React.ReactNode }> = ({ child
       deleteProjection: (id) => dispatch({ type: 'DELETE_PROJECTION', payload: id }),
       setCompany: (company) => dispatch({ type: 'SET_COMPANY', payload: company }),
     }),
-    [state],
+    [state, activeCompanyId, scopedInvoices, scopedExpenses, scopedClients, scopedProjections],
   );
 
   return <AppDataContext.Provider value={value}>{children}</AppDataContext.Provider>;

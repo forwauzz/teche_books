@@ -27,25 +27,25 @@ function getNextMonths(count: number): { key: string; label: string }[] {
 }
 
 export const ProjectionsView: React.FC = () => {
-  const { state, upsertProjection, deleteProjection } = useAppData();
+  const { state, scopedProjections, scopedInvoices, scopedExpenses, activeCompanyId, upsertProjection, deleteProjection } = useAppData();
   const months = useMemo(() => getNextMonths(12), []);
   const [editingId, setEditingId] = useState<string | null>(null);
 
   const byMonth = useMemo(() => {
     const map = new Map<string, Projection>();
-    state.projections.forEach((p) => map.set(p.month, p));
+    scopedProjections.forEach((p) => map.set(p.month, p));
     return map;
-  }, [state.projections]);
+  }, [scopedProjections]);
 
   const chartData = useMemo(() => {
     return months.map(({ key, label }) => {
       const p = byMonth.get(key);
       const projectedRevenue = p?.projectedRevenue ?? 0;
       const projectedExpenses = p?.projectedExpenses ?? 0;
-      const actualRevenue = state.invoices
+      const actualRevenue = scopedInvoices
         .filter((inv) => inv.issuedDate?.startsWith(key) && inv.status === 'Paid')
         .reduce((s, inv) => s + inv.amount, 0);
-      const actualExpenses = state.expenses
+      const actualExpenses = scopedExpenses
         .filter((e) => e.date?.startsWith(key))
         .reduce((s, e) => s + e.amount, 0);
       return {
@@ -59,7 +59,7 @@ export const ProjectionsView: React.FC = () => {
         actualNet: actualRevenue - actualExpenses,
       };
     });
-  }, [byMonth, months, state.expenses, state.invoices]);
+  }, [byMonth, months, scopedExpenses, scopedInvoices]);
 
   const addOrEdit = (monthKey: string, projectedRevenue: number, projectedExpenses: number, notes?: string) => {
     const existing = byMonth.get(monthKey);
@@ -70,6 +70,7 @@ export const ProjectionsView: React.FC = () => {
       projectedRevenue,
       projectedExpenses,
       notes,
+      companyId: state.company?.id,
       updatedAt: new Date().toISOString(),
     });
     setEditingId(null);
@@ -134,6 +135,7 @@ export const ProjectionsView: React.FC = () => {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
+                              disabled={!activeCompanyId}
                               onClick={() => {
                                 const revEl = document.getElementById(`proj-rev-${row.key}`) as HTMLInputElement | null;
                                 const expEl = document.getElementById(`proj-exp-${row.key}`) as HTMLInputElement | null;
@@ -141,7 +143,7 @@ export const ProjectionsView: React.FC = () => {
                                 const exp = expEl ? Number(expEl.value) || 0 : 0;
                                 addOrEdit(row.key, rev, exp);
                               }}
-                              className="text-xs font-semibold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded"
+                              className="text-xs font-semibold text-primary hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary rounded disabled:opacity-50 disabled:pointer-events-none"
                             >
                               Save
                             </button>
@@ -166,17 +168,20 @@ export const ProjectionsView: React.FC = () => {
                           <div className="flex items-center justify-end gap-1">
                             <button
                               type="button"
+                              disabled={!activeCompanyId}
                               onClick={() => setEditingId(row.key)}
-                              className="p-1.5 rounded-lg hover:bg-primary/20 text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+                              className="p-1.5 rounded-lg hover:bg-primary/20 text-primary focus:outline-none focus-visible:ring-2 focus-visible:ring-primary disabled:opacity-50 disabled:pointer-events-none"
                               aria-label={`Edit projections for ${row.month}`}
+                              title={!activeCompanyId ? 'Select or create a company first' : undefined}
                             >
                               <Pencil className="w-4 h-4" />
                             </button>
                             {proj && (
                               <button
                                 type="button"
+                                disabled={!activeCompanyId}
                                 onClick={() => deleteProjection(proj.id)}
-                                className="p-1.5 rounded-lg hover:bg-red-100 text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500"
+                                className="p-1.5 rounded-lg hover:bg-red-100 text-red-600 focus:outline-none focus-visible:ring-2 focus-visible:ring-red-500 disabled:opacity-50 disabled:pointer-events-none"
                                 aria-label={`Delete projection for ${row.month}`}
                               >
                                 <Trash2 className="w-4 h-4" />

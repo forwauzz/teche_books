@@ -18,11 +18,13 @@ import { LoginView } from './components/LoginView';
 import { SettingsView } from './components/SettingsView';
 import { View } from './types';
 import { motion, AnimatePresence } from 'motion/react';
+import { useAppData } from './context/AppDataContext';
 
 export default function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [currentView, setCurrentView] = useState<View>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const { state, activeCompanyId } = useAppData();
 
   useEffect(() => {
     if (sessionStorage.getItem('sfm-auth-logged-in') === 'true') {
@@ -57,6 +59,7 @@ export default function App() {
           <CreateInvoiceView
             onDone={() => setCurrentView('invoices')}
             onNavigateToClients={() => setCurrentView('clients')}
+            onNavigateToSettings={() => setCurrentView('settings')}
           />
         );
       case 'expenses':
@@ -105,6 +108,20 @@ export default function App() {
       />
       
       <main id="main-content" className="flex-1 flex flex-col overflow-hidden min-w-0" role="main">
+        {!activeCompanyId && currentView !== 'settings' && (
+          <div className="bg-amber-50 border-b border-amber-200 px-4 py-3 flex items-center justify-between gap-4 flex-wrap">
+            <p className="text-sm text-amber-800 font-medium">
+              Select or create a company to view and manage data.
+            </p>
+            <button
+              type="button"
+              onClick={() => handleViewChange('settings')}
+              className="text-sm font-bold text-amber-800 underline hover:no-underline focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 rounded"
+            >
+              Go to Settings
+            </button>
+          </div>
+        )}
         {currentView !== 'vault' && currentView !== 'expenses' && currentView !== 'create-invoice' && (
           <Header
             title={getTitle()}

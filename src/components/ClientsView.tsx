@@ -15,7 +15,7 @@ function makeInitials(name: string) {
 }
 
 export const ClientsView: React.FC = () => {
-  const { state, upsertClient, deleteClient } = useAppData();
+  const { scopedClients, scopedInvoices, activeCompanyId, upsertClient, deleteClient } = useAppData();
   const [query, setQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<(typeof statuses)[number]>('All');
   const [sort, setSort] = useState<'name' | 'revenue'>('name');
@@ -23,14 +23,14 @@ export const ClientsView: React.FC = () => {
 
   const clientRevenue = useMemo(() => {
     const map: Record<string, number> = {};
-    state.invoices.forEach((invoice) => {
+    scopedInvoices.forEach((invoice) => {
       map[invoice.clientEmail] = (map[invoice.clientEmail] ?? 0) + invoice.amount;
     });
     return map;
-  }, [state.invoices]);
+  }, [scopedInvoices]);
 
   const clients = useMemo(() => {
-    const filtered = state.clients.filter((client) => {
+    const filtered = scopedClients.filter((client) => {
       const byStatus = statusFilter === 'All' ? true : client.status === statusFilter;
       const q = query.toLowerCase();
       const byQuery = !q || client.name.toLowerCase().includes(q) || client.email.toLowerCase().includes(q) || client.contact.toLowerCase().includes(q);
@@ -39,7 +39,7 @@ export const ClientsView: React.FC = () => {
 
     if (sort === 'name') return filtered.sort((a, b) => a.name.localeCompare(b.name));
     return filtered.sort((a, b) => (clientRevenue[b.email] ?? 0) - (clientRevenue[a.email] ?? 0));
-  }, [clientRevenue, query, sort, state.clients, statusFilter]);
+  }, [clientRevenue, query, sort, scopedClients, statusFilter]);
 
   const saveClient = () => {
     if (!editing) return;
@@ -69,7 +69,9 @@ export const ClientsView: React.FC = () => {
                 updatedAt: new Date().toISOString(),
               })
             }
-            className="flex items-center px-4 py-2 bg-primary rounded-lg text-sm font-bold btn-primary"
+            disabled={!activeCompanyId}
+            title={!activeCompanyId ? 'Select or create a company first' : undefined}
+            className="flex items-center px-4 py-2 bg-primary rounded-lg text-sm font-bold btn-primary disabled:opacity-50 disabled:pointer-events-none"
           >
             <Plus className="w-4 h-4 mr-2" /> Add Client
           </button>
@@ -132,7 +134,7 @@ export const ClientsView: React.FC = () => {
       {editing && (
         <div className="fixed inset-0 bg-black/40 flex items-center justify-center p-4 z-50">
           <div className="bg-white rounded-xl border border-slate-200 w-full max-w-xl p-6 space-y-4">
-            <h3 className="text-xl font-bold">{state.clients.some((client) => client.id === editing.id) ? 'Edit Client' : 'Add Client'}</h3>
+            <h3 className="text-xl font-bold">{scopedClients.some((client) => client.id === editing.id) ? 'Edit Client' : 'Add Client'}</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               <input value={editing.name} onChange={(event) => setEditing({ ...editing, name: event.target.value })} className="border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Company Name" />
               <input value={editing.contact} onChange={(event) => setEditing({ ...editing, contact: event.target.value })} className="border border-slate-200 rounded-lg px-3 py-2 text-sm" placeholder="Contact Name" />

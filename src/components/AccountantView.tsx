@@ -7,7 +7,7 @@ const ACCESS_KEY = 'sfm-accountant-unlocked';
 const ACCOUNTANT_PASSCODE = 'techeservice';
 
 export const AccountantView: React.FC = () => {
-  const { state } = useAppData();
+  const { scopedInvoices, scopedExpenses } = useAppData();
   const [passcode, setPasscode] = useState('');
   const [unlocked, setUnlocked] = useState(false);
   const [error, setError] = useState('');
@@ -17,8 +17,8 @@ export const AccountantView: React.FC = () => {
   }, []);
 
   const stats = useMemo(() => {
-    const totalRevenue = state.invoices.filter((invoice) => invoice.status === 'Paid').reduce((sum, invoice) => sum + invoice.amount, 0);
-    const totalExpenses = state.expenses.reduce((sum, expense) => sum + expense.amount, 0);
+    const totalRevenue = scopedInvoices.filter((invoice) => invoice.status === 'Paid').reduce((sum, invoice) => sum + invoice.amount, 0);
+    const totalExpenses = scopedExpenses.reduce((sum, expense) => sum + expense.amount, 0);
     const taxEstimate = Math.max(0, (totalRevenue - totalExpenses) * 0.2);
     return {
       totalRevenue,
@@ -26,22 +26,22 @@ export const AccountantView: React.FC = () => {
       netIncome: totalRevenue - totalExpenses,
       taxEstimate,
     };
-  }, [state.expenses, state.invoices]);
+  }, [scopedExpenses, scopedInvoices]);
 
   const latestInvoices = useMemo(
     () =>
-      [...state.invoices]
+      [...scopedInvoices]
         .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
         .slice(0, 8),
-    [state.invoices],
+    [scopedInvoices],
   );
 
   const latestExpenses = useMemo(
     () =>
-      [...state.expenses]
+      [...scopedExpenses]
         .sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1))
         .slice(0, 8),
-    [state.expenses],
+    [scopedExpenses],
   );
 
   const submitPasscode = () => {

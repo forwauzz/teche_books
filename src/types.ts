@@ -25,6 +25,7 @@ export interface Projection {
   projectedRevenue: number;
   projectedExpenses: number;
   notes?: string;
+  companyId?: string;
   updatedAt: string;
 }
 
@@ -32,6 +33,8 @@ export interface Projection {
 export interface Company {
   id: string;
   name: string;
+  /** When the company record was first created (ISO string). */
+  createdAt?: string;
   legalName?: string;
   addressLine1?: string;
   addressLine2?: string;
@@ -43,6 +46,8 @@ export interface Company {
   email?: string;
   website?: string;
   taxId?: string;
+  /** Optional local logo file name (for display only; not uploaded). */
+  logoFileName?: string;
   updatedAt: string;
 }
 
@@ -64,6 +69,7 @@ export interface Invoice {
   dueDate: string;
   amount: number;
   status: InvoiceStatus;
+  companyId?: string;
   lineItems: InvoiceLineItem[];
   taxRate: number;
   notes?: string;
@@ -79,6 +85,7 @@ export interface Expense {
   category: string;
   amount: number;
   status: ExpenseStatus;
+  companyId?: string;
   notes?: string;
   paymentMethod?: string;
   receiptName?: string;
@@ -92,6 +99,7 @@ export interface Client {
   name: string;
   contact: string;
   email: string;
+  companyId?: string;
   status: ClientStatus;
   initials: string;
   color: string;

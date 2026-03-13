@@ -23,47 +23,47 @@ function monthBuckets() {
 }
 
 export const DashboardView: React.FC = () => {
-  const { state } = useAppData();
+  const { scopedInvoices, scopedExpenses, scopedClients } = useAppData();
 
   const stats = useMemo(() => {
-    const totalRevenue = state.invoices.filter((invoice) => invoice.status === 'Paid').reduce((acc, invoice) => acc + invoice.amount, 0);
-    const outstanding = state.invoices.filter((invoice) => invoice.status !== 'Paid').reduce((acc, invoice) => acc + invoice.amount, 0);
-    const monthlyExpenses = state.expenses.reduce((acc, expense) => acc + expense.amount, 0);
+    const totalRevenue = scopedInvoices.filter((invoice) => invoice.status === 'Paid').reduce((acc, invoice) => acc + invoice.amount, 0);
+    const outstanding = scopedInvoices.filter((invoice) => invoice.status !== 'Paid').reduce((acc, invoice) => acc + invoice.amount, 0);
+    const monthlyExpenses = scopedExpenses.reduce((acc, expense) => acc + expense.amount, 0);
     return { totalRevenue, outstanding, monthlyExpenses };
-  }, [state.expenses, state.invoices]);
+  }, [scopedExpenses, scopedInvoices]);
 
   const chartData = useMemo(() => {
     const buckets = monthBuckets();
     const indexed = new Map(buckets.map((entry) => [entry.key, entry]));
 
-    state.invoices.forEach((invoice) => {
+    scopedInvoices.forEach((invoice) => {
       const key = invoice.issuedDate?.slice(0, 7);
       const target = key ? indexed.get(key) : null;
       if (target) target.revenue += invoice.amount;
     });
 
-    state.expenses.forEach((expense) => {
+    scopedExpenses.forEach((expense) => {
       const key = expense.date?.slice(0, 7);
       const target = key ? indexed.get(key) : null;
       if (target) target.expenses += expense.amount;
     });
 
     return buckets.map(({ key: _key, ...rest }) => rest);
-  }, [state.expenses, state.invoices]);
+  }, [scopedExpenses, scopedInvoices]);
 
   const revenueByClient = useMemo(() => {
     const groups: Record<string, number> = {};
-    state.invoices.forEach((invoice) => {
+    scopedInvoices.forEach((invoice) => {
       groups[invoice.clientName] = (groups[invoice.clientName] ?? 0) + invoice.amount;
     });
     return Object.entries(groups)
       .map(([name, value], index) => ({ name, value, color: chartColors[index % chartColors.length] }))
       .sort((a, b) => b.value - a.value)
       .slice(0, 4);
-  }, [state.invoices]);
+  }, [scopedInvoices]);
 
   const recentActivity = useMemo(() => {
-    const invoices = state.invoices.map((invoice) => ({
+    const invoices = scopedInvoices.map((invoice) => ({
       id: `invoice-${invoice.id}`,
       title: invoice.status === 'Paid' ? 'Payment Received' : 'Invoice Updated',
       subtitle: `${invoice.clientName} • ${invoice.id}`,
@@ -73,7 +73,7 @@ export const DashboardView: React.FC = () => {
       iconBg: 'bg-primary/20 text-primary',
     }));
 
-    const expenses = state.expenses.map((expense) => ({
+    const expenses = scopedExpenses.map((expense) => ({
       id: `expense-${expense.id}`,
       title: 'Expense Logged',
       subtitle: `${expense.vendor} • ${expense.category}`,
@@ -86,21 +86,21 @@ export const DashboardView: React.FC = () => {
     return [...invoices, ...expenses]
       .sort((a, b) => (a.time < b.time ? 1 : -1))
       .slice(0, 5);
-  }, [state.expenses, state.invoices]);
+  }, [scopedExpenses, scopedInvoices]);
 
   const topClients = useMemo(
     () =>
-      state.clients
+      scopedClients
         .map((client) => ({
           ...client,
-          billed: state.invoices
+          billed: scopedInvoices
             .filter((invoice) => invoice.clientEmail === client.email)
             .reduce((sum, invoice) => sum + invoice.amount, 0),
-          projectCount: state.invoices.filter((invoice) => invoice.clientEmail === client.email).length,
+          projectCount: scopedInvoices.filter((invoice) => invoice.clientEmail === client.email).length,
         }))
         .sort((a, b) => b.billed - a.billed)
         .slice(0, 3),
-    [state.clients, state.invoices],
+    [scopedClients, scopedInvoices],
   );
 
   return (
@@ -108,7 +108,7 @@ export const DashboardView: React.FC = () => {
       <section className="grid grid-cols-1 md:grid-cols-3 gap-6">
         <StatCard title="Total Revenue" value={formatCurrency(stats.totalRevenue)} trend="+Paid invoices" trendUp />
         <StatCard title="Outstanding Invoices" value={formatCurrency(stats.outstanding)} trend="Unpaid total" trendUp={false} />
-        <StatCard title="Monthly Expenses" value={formatCurrency(stats.monthlyExpenses)} trend={`${state.expenses.length} expenses`} trendUp={false} />
+        <StatCard title="Monthly Expenses" value={formatCurrency(stats.monthlyExpenses)} trend={`${scopedExpenses.length} expenses`} trendUp={false} />
       </section>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -189,19 +189,19 @@ export const DashboardView: React.FC = () => {
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold text-red-600 uppercase">Overdue</span>
               <span className="text-xs font-bold text-red-600">
-                {formatCurrency(state.invoices.filter((invoice) => invoice.status === 'Overdue').reduce((sum, invoice) => sum + invoice.amount, 0))}
+                {formatCurrency(scopedInvoices.filter((invoice) => invoice.status === 'Overdue').reduce((sum, invoice) => sum + invoice.amount, 0))}
               </span>
             </div>
-            <p className="text-sm font-semibold">{state.invoices.filter((invoice) => invoice.status === 'Overdue').length} overdue invoices</p>
+            <p className="text-sm font-semibold">{scopedInvoices.filter((invoice) => invoice.status === 'Overdue').length} overdue invoices</p>
           </div>
           <div className="p-4 rounded-lg bg-amber-50 border border-amber-100">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-bold text-amber-600 uppercase">Draft</span>
               <span className="text-xs font-bold text-amber-600">
-                {formatCurrency(state.invoices.filter((invoice) => invoice.status === 'Draft').reduce((sum, invoice) => sum + invoice.amount, 0))}
+                {formatCurrency(scopedInvoices.filter((invoice) => invoice.status === 'Draft').reduce((sum, invoice) => sum + invoice.amount, 0))}
               </span>
             </div>
-            <p className="text-sm font-semibold">{state.invoices.filter((invoice) => invoice.status === 'Draft').length} draft invoices</p>
+            <p className="text-sm font-semibold">{scopedInvoices.filter((invoice) => invoice.status === 'Draft').length} draft invoices</p>
           </div>
         </div>
       </div>
